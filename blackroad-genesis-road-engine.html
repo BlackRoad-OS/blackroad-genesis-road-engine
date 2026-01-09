@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genesis Road - Game Engine</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --phi: 1.618;
+            --amber: #F5A623;
+            --hot-pink: #FF1D6C;
+            --electric-blue: #2979FF;
+            --violet: #9C27B0;
+        }
+
+        body {
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            overflow: hidden;
+        }
+
+        .engine-container {
+            width: 100vw;
+            height: 100vh;
+            display: grid;
+            grid-template-rows: 60px 1fr 200px;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255,255,255,0.05);
+            border-bottom: 2px solid var(--amber);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+        }
+
+        .logo {
+            font-size: 1.5em;
+            background: linear-gradient(135deg, var(--amber), var(--hot-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+
+        .engine-stats {
+            display: flex;
+            gap: 30px;
+            color: #0f0;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        /* Main Canvas Area */
+        .canvas-area {
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            background: #000;
+        }
+
+        /* Toolbox */
+        .toolbox {
+            background: rgba(255,255,255,0.03);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .toolbox h3 {
+            color: var(--amber);
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        .tool-category {
+            margin-bottom: 25px;
+        }
+
+        .tool-item {
+            padding: 10px;
+            margin: 8px 0;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tool-item:hover {
+            background: rgba(245,166,35,0.1);
+            border-color: var(--amber);
+            transform: translateX(5px);
+        }
+
+        /* Canvas */
+        .canvas {
+            position: relative;
+            background: #000;
+            background-image:
+                linear-gradient(rgba(245,166,35,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(245,166,35,0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: var(--electric-blue);
+            font-size: 0.9em;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid var(--electric-blue);
+        }
+
+        /* Properties Panel */
+        .properties {
+            background: rgba(255,255,255,0.03);
+            border-left: 1px solid rgba(255,255,255,0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .properties h3 {
+            color: var(--hot-pink);
+            margin-bottom: 20px;
+        }
+
+        .property-group {
+            margin-bottom: 20px;
+        }
+
+        .property-label {
+            color: #999;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .property-input {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 5px;
+            padding: 8px;
+            color: #0f0;
+            font-family: 'Monaco', monospace;
+        }
+
+        .property-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        /* Console */
+        .console {
+            background: #000;
+            border-top: 2px solid var(--electric-blue);
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 0.9em;
+        }
+
+        .console-header {
+            color: var(--electric-blue);
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .console-line {
+            margin: 5px 0;
+            color: #0f0;
+        }
+
+        .console-line.error {
+            color: var(--hot-pink);
+        }
+
+        .console-line.warn {
+            color: var(--amber);
+        }
+
+        .console-line.info {
+            color: var(--electric-blue);
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--amber), var(--hot-pink));
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn.secondary {
+            background: rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="engine-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">⚡ Genesis Road Engine</div>
+            <div class="engine-stats">
+                <div class="stat">
+                    <div class="stat-label">FPS</div>
+                    <div class="stat-value" id="fps">60</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Objects</div>
+                    <div class="stat-value" id="objects">12</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Memory</div>
+                    <div class="stat-value" id="memory">24 MB</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Physics</div>
+                    <div class="stat-value" id="physics">ON</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Canvas Area -->
+        <div class="canvas-area">
+            <!-- Toolbox -->
+            <div class="toolbox">
+                <h3>🛠️ Tools</h3>
+
+                <div class="tool-category">
+                    <div style="color: var(--amber); margin-bottom: 10px;">Primitives</div>
+                    <div class="tool-item">📦 Cube</div>
+                    <div class="tool-item">⚪ Sphere</div>
+                    <div class="tool-item">🔺 Pyramid</div>
+                    <div class="tool-item">🟦 Plane</div>
+                </div>
+
+                <div class="tool-category">
+                    <div style="color: var(--hot-pink); margin-bottom: 10px;">Lights</div>
+                    <div class="tool-item">💡 Point Light</div>
+                    <div class="tool-item">🔦 Spot Light</div>
+                    <div class="tool-item">☀️ Directional Light</div>
+                </div>
+
+                <div class="tool-category">
+                    <div style="color: var(--electric-blue); margin-bottom: 10px;">Physics</div>
+                    <div class="tool-item">⚡ Rigid Body</div>
+                    <div class="tool-item">🌊 Fluid</div>
+                    <div class="tool-item">💨 Particle System</div>
+                </div>
+
+                <div class="tool-category">
+                    <div style="color: var(--violet); margin-bottom: 10px;">Scripts</div>
+                    <div class="tool-item">📝 Behavior Script</div>
+                    <div class="tool-item">🎮 Controller</div>
+                    <div class="tool-item">🤖 AI Agent</div>
+                </div>
+            </div>
+
+            <!-- Canvas -->
+            <div class="canvas">
+                <canvas id="gameCanvas"></canvas>
+                <div class="canvas-overlay">
+                    <div>Genesis Road Engine v1.0</div>
+                    <div>Scene: Main Scene</div>
+                    <div>Camera: Perspective</div>
+                </div>
+            </div>
+
+            <!-- Properties -->
+            <div class="properties">
+                <h3>⚙️ Properties</h3>
+
+                <div class="property-group">
+                    <div class="property-label">Object Name</div>
+                    <input type="text" class="property-input" value="Player" />
+                </div>
+
+                <div class="property-group">
+                    <div class="property-label">Position</div>
+                    <input type="text" class="property-input" value="0, 0, 0" />
+                </div>
+
+                <div class="property-group">
+                    <div class="property-label">Rotation</div>
+                    <input type="text" class="property-input" value="0, 0, 0" />
+                </div>
+
+                <div class="property-group">
+                    <div class="property-label">Scale</div>
+                    <input type="text" class="property-input" value="1, 1, 1" />
+                </div>
+
+                <div class="property-group">
+                    <div class="property-label">Mass</div>
+                    <input type="range" class="property-slider" min="0" max="100" value="10" />
+                    <input type="text" class="property-input" value="10 kg" />
+                </div>
+
+                <div class="property-group">
+                    <div class="property-label">Color</div>
+                    <input type="color" class="property-input" value="#F5A623" />
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn">▶️ Play</button>
+                    <button class="btn secondary">⏸️ Pause</button>
+                    <button class="btn secondary">⏹️ Stop</button>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn">💾 Save</button>
+                    <button class="btn secondary">📂 Load</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console -->
+        <div class="console">
+            <div class="console-header">🖥️ Console Output</div>
+            <div class="console-line info">[INFO] Genesis Road Engine v1.0 initialized</div>
+            <div class="console-line">[INFO] Renderer: WebGL 2.0</div>
+            <div class="console-line">[INFO] Physics engine: Active</div>
+            <div class="console-line">[INFO] Scene loaded: Main Scene</div>
+            <div class="console-line">[INFO] 12 game objects instantiated</div>
+            <div class="console-line warn">[WARN] Shader compilation took 45ms</div>
+            <div class="console-line">[INFO] Ready to rock! 🎮</div>
+        </div>
+    </div>
+
+    <script>
+        // Simple canvas animation
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Draw simple scene
+        let rotation = 0;
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw rotating cube (wireframe)
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const size = 100;
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(rotation);
+
+            // Gradient colors
+            const gradient = ctx.createLinearGradient(-size, -size, size, size);
+            gradient.addColorStop(0, '#F5A623');
+            gradient.addColorStop(0.5, '#FF1D6C');
+            gradient.addColorStop(1, '#2979FF');
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 2;
+
+            // Draw cube wireframe
+            ctx.strokeRect(-size, -size, size * 2, size * 2);
+            ctx.beginPath();
+            ctx.moveTo(-size, -size);
+            ctx.lineTo(0, 0);
+            ctx.moveTo(size, -size);
+            ctx.lineTo(0, 0);
+            ctx.moveTo(-size, size);
+            ctx.lineTo(0, 0);
+            ctx.moveTo(size, size);
+            ctx.lineTo(0, 0);
+            ctx.stroke();
+
+            ctx.restore();
+
+            rotation += 0.01;
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Simulate FPS counter
+        setInterval(() => {
+            document.getElementById('fps').textContent = Math.floor(Math.random() * 5 + 58);
+        }, 1000);
+    </script>
+</body>
+</html>
